@@ -71,4 +71,8 @@
 #define IDC_SLIDER_SATURATION       2021
 #define IDC_LABEL_SATURATION        2022
 
+#define IDC_STATIC_WHEEL_GROUP      2026
+#define IDC_RADIO_WHEEL_ZOOM        2027
+#define IDC_RADIO_WHEEL_NAVIGATE    2028
+
 #define IDC_STATIC                  -1
