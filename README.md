@@ -46,6 +46,13 @@ _For a stripped-down 21kb version, you can try the [stable stripped .exe](https:
     - **Default Zoom**: Set the default zoom to "Fit to Window" or "Actual Size (100%)" in Preferences.
  
 
+### Gallery View
+
+- **Thumbnail Grid**: Press `G` or use the right-click context menu (View → Gallery) to enter Gallery View, which displays all images in the current directory as a scrollable thumbnail grid (160×120 px thumbnails).
+- **Async Loading**: Thumbnails are loaded on a background thread — prioritizing the currently open image outward — so the gallery is responsive immediately.
+- **Navigation**: Use arrow keys to move between thumbnails, `Enter` or a single click to open an image, `Escape` or `G` to return to the viewer, and scroll wheel to pan the grid.
+- **Selection Highlight**: The currently selected thumbnail is highlighted with a colored border.
+
 ### OCR
 
 - **Whole Image OCR**: Press 'q' to OCR the entire image.
@@ -159,6 +166,18 @@ To set it as your default viewer, see the [Default Viewer Instructions](https://
 - **Pan Image**: **Click and Drag** (when zoomed in)
     
 - **Sort By**: Right-Click → "Sort By" → (Name/Date/Size)
+
+#### Gallery View
+
+- **Open Gallery**: `G` or Right-Click → "View" → "Gallery"
+    
+- **Navigate Thumbnails**: `Arrow Keys`
+    
+- **Open Image**: `Enter` or **Click**
+    
+- **Scroll Grid**: **Mouse Wheel**
+    
+- **Exit Gallery**: `Escape` or `G`
     
 
 #### Viewing
@@ -221,23 +240,29 @@ To set it as your default viewer, see the [Default Viewer Instructions](https://
             
     - **Animation**: `IWICBitmapDecoder::GetFrameCount()` is used to detect multi-frame images. Frame delays are read from the metadata (`/grctlext/Delay`) and a `WM_TIMER` event is used to cycle frames.
         
-- **Concurrency**: Image loading is fully asynchronous on a separate `std::thread` to keep the UI responsive. A custom `WM_APP_IMAGE_LOADED` message is posted to the main window thread to safely transfer the decoded image. Directory pre-loading (`StartPreloading`) uses two additional threads for the next/previous images.
+- **Concurrency**: Image loading is fully asynchronous on a separate `std::thread` to keep the UI responsive. A custom `WM_APP_IMAGE_LOADED` message is posted to the main window thread to safely transfer the decoded image. Directory pre-loading (`StartPreloading`) uses two additional threads for the next/previous images. Gallery View adds a dedicated loader thread that decodes thumbnails via WIC and posts each result to the UI thread via `WM_APP_THUMB_READY`, using `std::atomic<bool>` for cooperative cancellation.
     
 - **State Management**: Window state and user preferences are persisted in a portable `minimal_image_viewer_settings.ini` file using `GetPrivateProfileIntW` and `WritePrivateProfileStringW`.
     
 
 ## Build Process
 
-1. Open `MinimalImageViewer-VS.vcxproj` in Visual Studio 2022.
+### Option A — GitHub Actions (no local toolchain required)
+
+Every push to `main` triggers a cloud build via the included [`.github/workflows/build.yml`](.github/workflows/build.yml). The compiled `MinimalImageViewer.exe` is uploaded as a build artifact and can be downloaded directly from the **Actions** tab of the repository — no Visual Studio installation needed.
+
+### Option B — Visual Studio 2022
+
+1. Open `MinimalImageViewer.vcxproj` in Visual Studio 2022.
     
-2. Set the build configuration to "Release" and "x64".
+2. Set the build configuration to **Release** and **x64**.
     
-3. Build the solution.
+3. Build the solution (`Ctrl+Shift+B`).
     
 
 The project links against the following standard Windows libraries:
 
-user32.lib, gdi32.lib, comdlg32.lib, shlwapi.lib, windowscodecs.lib, ole32.lib, shell32.lib, propsys.lib, oleaut32.lib, d2d1.lib, dwrite.lib, advapi32.lib.
+user32.lib, gdi32.lib, comdlg32.lib, shlwapi.lib, windowscodecs.lib, ole32.lib, shell32.lib, propsys.lib, oleaut32.lib, d2d1.lib, dwrite.lib, comctl32.lib, advapi32.lib, WindowsApp.lib.
 
 ## Contributing
 
