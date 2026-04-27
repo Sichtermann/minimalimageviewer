@@ -540,6 +540,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     case WM_MOUSEWHEEL: {
         int wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
         if (g_ctx.isGalleryMode) { GalleryOnScroll(wheelDelta); break; }
+        if (g_ctx.mouseWheelMode == MouseWheelMode::Navigate) {
+            if (!g_ctx.imageFiles.empty() && g_ctx.currentImageIndex != -1) {
+                int size = static_cast<int>(g_ctx.imageFiles.size());
+                if (wheelDelta > 0) {
+                    g_ctx.currentImageIndex = (g_ctx.currentImageIndex - 1 + size) % size;
+                    g_ctx.startAtEnd = true;
+                } else {
+                    g_ctx.currentImageIndex = (g_ctx.currentImageIndex + 1) % size;
+                    g_ctx.startAtEnd = false;
+                }
+                g_ctx.pendingNavIndex = g_ctx.currentImageIndex;
+                std::wstring title = PathFindFileNameW(g_ctx.imageFiles[g_ctx.currentImageIndex].c_str());
+                title += L"  [Loading...]";
+                SetWindowTextW(g_ctx.hWnd, title.c_str());
+                SetTimer(g_ctx.hWnd, NAV_DEBOUNCE_TIMER_ID, 150, nullptr);
+            }
+            break;
+        }
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         ScreenToClient(hWnd, &pt);
         ZoomImage(wheelDelta > 0 ? 1.1f : 0.9f, pt);

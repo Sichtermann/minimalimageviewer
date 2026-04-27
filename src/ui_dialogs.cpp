@@ -27,6 +27,9 @@ static INT_PTR CALLBACK PreferencesDialogProc(HWND hDlg, UINT message, WPARAM wP
 
         CheckRadioButton(hDlg, IDC_RADIO_ZOOM_FIT, IDC_RADIO_ZOOM_ACTUAL,
             g_ctx.defaultZoomMode == DefaultZoomMode::Fit ? IDC_RADIO_ZOOM_FIT : IDC_RADIO_ZOOM_ACTUAL);
+
+        CheckRadioButton(hDlg, IDC_RADIO_WHEEL_ZOOM, IDC_RADIO_WHEEL_NAVIGATE,
+            g_ctx.mouseWheelMode == MouseWheelMode::Zoom ? IDC_RADIO_WHEEL_ZOOM : IDC_RADIO_WHEEL_NAVIGATE);
         return (INT_PTR)TRUE;
     }
     case WM_COMMAND:
@@ -53,6 +56,9 @@ static INT_PTR CALLBACK PreferencesDialogProc(HWND hDlg, UINT message, WPARAM wP
 
             if (IsDlgButtonChecked(hDlg, IDC_RADIO_ZOOM_FIT)) g_ctx.defaultZoomMode = DefaultZoomMode::Fit;
             else if (IsDlgButtonChecked(hDlg, IDC_RADIO_ZOOM_ACTUAL)) g_ctx.defaultZoomMode = DefaultZoomMode::Actual;
+
+            if (IsDlgButtonChecked(hDlg, IDC_RADIO_WHEEL_ZOOM)) g_ctx.mouseWheelMode = MouseWheelMode::Zoom;
+            else if (IsDlgButtonChecked(hDlg, IDC_RADIO_WHEEL_NAVIGATE)) g_ctx.mouseWheelMode = MouseWheelMode::Navigate;
 
             SetWindowPos(g_ctx.hWnd, (g_ctx.alwaysOnTop) ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
             UpdateTitleBarTheme(g_ctx.hWnd, g_ctx.bgColor);

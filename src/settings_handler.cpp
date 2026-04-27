@@ -15,6 +15,9 @@ void ReadSettings(const std::wstring& path, RECT& rect, bool& fullscreen, bool& 
     int zoomChoice = getInt(L"Settings", L"DefaultZoomMode", 0);
     g_ctx.defaultZoomMode = static_cast<DefaultZoomMode>((zoomChoice < 0 || zoomChoice > 1) ? 0 : zoomChoice);
 
+    int wheelChoice = getInt(L"Settings", L"MouseWheelMode", 0);
+    g_ctx.mouseWheelMode = static_cast<MouseWheelMode>((wheelChoice < 0 || wheelChoice > 1) ? 0 : wheelChoice);
+
     rect.left = getInt(L"Window", L"left", CW_USEDEFAULT);
     rect.top = getInt(L"Window", L"top", CW_USEDEFAULT);
     rect.right = getInt(L"Window", L"right", CW_USEDEFAULT);
@@ -45,6 +48,7 @@ void WriteSettings(const std::wstring& path, const RECT& rect, bool fullscreen, 
     writeInt(L"Settings", L"AlwaysOnTop", alwaysOnTop ? 1 : 0);
     writeInt(L"Settings", L"BackgroundColor", static_cast<int>(g_ctx.bgColor));
     writeInt(L"Settings", L"DefaultZoomMode", static_cast<int>(g_ctx.defaultZoomMode));
+    writeInt(L"Settings", L"MouseWheelMode", static_cast<int>(g_ctx.mouseWheelMode));
 
     writeInt(L"Keys", L"Next", g_ctx.hotkeys[Act_Next]);
     writeInt(L"Keys", L"Prev", g_ctx.hotkeys[Act_Prev]);

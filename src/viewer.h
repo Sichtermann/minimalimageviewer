@@ -99,6 +99,11 @@ enum class DefaultZoomMode {
     Actual = 1
 };
 
+enum class MouseWheelMode {
+    Zoom = 0,
+    Navigate = 1
+};
+
 enum ActionID {
     Act_Next = 0, Act_Prev, Act_ZoomIn, Act_ZoomOut, Act_Fit, Act_Actual,
     Act_Fullscreen, Act_RotateCW, Act_RotateCCW, Act_Flip, Act_Crop, Act_Exit, Act_Count
@@ -174,6 +179,7 @@ struct AppContext {
     SortCriteria currentSortCriteria = SortCriteria::ByName;
     bool isSortAscending = true;
     DefaultZoomMode defaultZoomMode = DefaultZoomMode::Fit;
+    MouseWheelMode mouseWheelMode = MouseWheelMode::Zoom;
 
     // Loading State
     std::atomic<bool> isLoading{ false };
