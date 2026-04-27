@@ -58,6 +58,7 @@ constexpr UINT WM_APP_OCR_FAILED = (WM_APP + 6);
 constexpr UINT WM_APP_IMAGE_READY = (WM_APP + 7);
 constexpr UINT WM_APP_DIR_READY = (WM_APP + 8);
 constexpr UINT WM_APP_HQ_READY = (WM_APP + 9);
+constexpr UINT WM_APP_THUMB_READY = (WM_APP + 10);
 
 constexpr UINT ANIMATION_TIMER_ID = 1;
 constexpr UINT OCR_MESSAGE_TIMER_ID = 2;
@@ -262,6 +263,18 @@ struct AppContext {
     bool preserveView = false;
     float renderScale = 1.0f;
     WORD hotkeys[Act_Count];
+
+    // Gallery mode
+    bool isGalleryMode = false;
+    std::vector<ComPtr<ID2D1Bitmap>> galleryThumbs;
+    std::vector<bool> galleryThumbLoaded;
+    std::vector<bool> galleryThumbFailed;
+    int galleryScrollOffset = 0;
+    int gallerySelectedIndex = -1;
+    std::atomic<bool> cancelGalleryLoading{ false };
+    std::thread galleryLoaderThread;
+    ComPtr<ID2D1SolidColorBrush> gallerySelBrush;
+    ComPtr<ID2D1SolidColorBrush> galleryBgBrush;
 };
 
 void CenterImage(bool resetZoom);
@@ -318,3 +331,12 @@ void ReadSettings(const std::wstring& path, RECT& rect, bool& fullscreen, bool& 
 void WriteSettings(const std::wstring& path, const RECT& rect, bool fullscreen, bool singleInstance, bool alwaysOnTop);
 
 HRESULT CreateDecoderFromFile(const wchar_t* filePath, IWICBitmapDecoder** ppDecoder);
+
+void EnterGalleryMode();
+void ExitGalleryMode();
+void RenderGallery();
+void GalleryOnClick(POINT pt);
+void GalleryOnScroll(int delta);
+void GalleryOnKeyDown(WPARAM key);
+void CleanupGalleryThread();
+void GalleryDiscardBitmaps();

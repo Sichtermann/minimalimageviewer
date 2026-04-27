@@ -20,6 +20,7 @@
   </ItemGroup>
 	<ItemGroup>
 		<ClCompile Include="exif_utils.cpp" />
+		<ClCompile Include="gallery.cpp" />
 		<ClCompile Include="image_drawing.cpp" />
 		<ClCompile Include="image_edit.cpp" />
 		<ClCompile Include="image_io.cpp" />

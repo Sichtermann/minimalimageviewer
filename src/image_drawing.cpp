@@ -106,6 +106,7 @@ void CreateDeviceResources() {
 }
 
 void DiscardDeviceResources() {
+    if (g_ctx.isGalleryMode) GalleryDiscardBitmaps();
     CriticalSectionLock lock(g_ctx.wicMutex);
     g_ctx.renderTarget = nullptr;
     g_ctx.d2dBitmap = nullptr;
@@ -288,6 +289,17 @@ void Render() {
     if (!g_ctx.renderTarget) return;
 
     g_ctx.renderTarget->BeginDraw();
+
+    if (g_ctx.isGalleryMode) {
+        RenderGallery();
+        HRESULT hr = g_ctx.renderTarget->EndDraw();
+        if (hr == D2DERR_RECREATE_TARGET) {
+            GalleryDiscardBitmaps();
+            DiscardDeviceResources();
+            InvalidateRect(g_ctx.hWnd, nullptr, FALSE);
+        }
+        return;
+    }
 
     if (g_ctx.bgColor == BackgroundColor::Transparent && g_ctx.checkerboardBrush) {
         D2D1_SIZE_F rtSize = g_ctx.renderTarget->GetSize();

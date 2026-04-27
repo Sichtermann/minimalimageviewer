@@ -40,6 +40,7 @@
 #define IDM_OCR_AREA                1042
 #define IDM_REFRESH                 1051  
 #define IDM_EYEDROPPER              1052
+#define IDM_GALLERY                 1053
 
 #define IDD_RESIZE_DIALOG           201
 #define IDC_EDIT_WIDTH              2001

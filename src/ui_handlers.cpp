@@ -33,6 +33,10 @@ static bool CheckHotkey(WORD hk, WPARAM wParam) {
 }
 
 static void OnKeyDown(WPARAM wParam) {
+    if (g_ctx.isGalleryMode) {
+        GalleryOnKeyDown(wParam);
+        return;
+    }
     bool ctrlPressed = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     auto isKey = [&](ActionID act) { return CheckHotkey(g_ctx.hotkeys[act], wParam); };
 
@@ -130,6 +134,7 @@ static void OnKeyDown(WPARAM wParam) {
                 g_ctx.isCropActive = true; g_ctx.isCropPending = false; g_ctx.isCropMode = false;
                 CommitCrop(); ApplyEffectsToView(); FitImageToWindow(); InvalidateRect(g_ctx.hWnd, nullptr, FALSE);
             } break;
+        case 'G': if (!g_ctx.imageFiles.empty()) EnterGalleryMode(); break;
         case 'I': g_ctx.isOsdVisible = !g_ctx.isOsdVisible; InvalidateRect(g_ctx.hWnd, nullptr, FALSE); break;
         case 'Q': PerformOcr(); break;
         case 'W': g_ctx.isSelectingOcrRect = true; g_ctx.isDraggingOcrRect = false; g_ctx.isCropMode = false; g_ctx.isSelectingCropRect = false; g_ctx.isCropPending = false; g_ctx.isEyedropperActive = false; SetCursor(LoadCursor(nullptr, IDC_CROSS)); break;
@@ -193,6 +198,11 @@ static void OnContextMenu(HWND hWnd, POINT pt) {
     addAction(hViewMenu, IDM_FIT_TO_WINDOW, Act_Fit, L"Fit to Window");
     AppendMenuW(hViewMenu, MF_SEPARATOR, 0, nullptr);
     addAction(hViewMenu, IDM_FULLSCREEN, Act_Fullscreen, L"Full Screen");
+    AppendMenuW(hViewMenu, MF_SEPARATOR, 0, nullptr);
+    {
+        UINT galleryFlags = MF_STRING | (g_ctx.imageFiles.empty() ? MF_GRAYED : 0);
+        AppendMenuW(hViewMenu, galleryFlags, IDM_GALLERY, L"Gallery View\tG");
+    }
     AppendMenuW(hMenu, MF_POPUP, (UINT_PTR)hViewMenu, L"View");
 
     AppendMenuW(hMenu, MF_STRING, IDM_OCR, L"Copy Text (OCR)\tQ");
@@ -239,6 +249,7 @@ static void OnContextMenu(HWND hWnd, POINT pt) {
     case IDM_ACTUAL_SIZE:   SetActualSize(); break;
     case IDM_FIT_TO_WINDOW: FitImageToWindow(); break;
     case IDM_FULLSCREEN:    ToggleFullScreen(); break;
+    case IDM_GALLERY:       EnterGalleryMode(); break;
     case IDM_DELETE_IMG:    DeleteCurrentImage(); break;
     case IDM_EXIT:          PostQuitMessage(0); break;
     case IDM_ROTATE_CW:     RotateImage(true); break;
@@ -366,6 +377,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             }
             pBitmap->Release();
         }
+        break;
+    }
+    case WM_APP_THUMB_READY: {
+        IWICBitmap* pBitmap = reinterpret_cast<IWICBitmap*>(wParam);
+        int idx = static_cast<int>(lParam);
+        if (g_ctx.isGalleryMode && idx >= 0 && idx < static_cast<int>(g_ctx.galleryThumbs.size())) {
+            if (pBitmap && g_ctx.renderTarget) {
+                ComPtr<ID2D1Bitmap> d2dThumb;
+                if (SUCCEEDED(g_ctx.renderTarget->CreateBitmapFromWicBitmap(pBitmap, nullptr, &d2dThumb)))
+                    g_ctx.galleryThumbs[idx] = d2dThumb;
+                else
+                    g_ctx.galleryThumbFailed[idx] = true;
+            } else {
+                g_ctx.galleryThumbFailed[idx] = true;
+            }
+            g_ctx.galleryThumbLoaded[idx] = true;
+            InvalidateRect(hWnd, nullptr, FALSE);
+        }
+        if (pBitmap) pBitmap->Release();
         break;
     }
     case WM_APP_IMAGE_LOAD_FAILED:
@@ -508,15 +538,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     case WM_KEYUP:
         break;
     case WM_MOUSEWHEEL: {
+        int wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+        if (g_ctx.isGalleryMode) { GalleryOnScroll(wheelDelta); break; }
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         ScreenToClient(hWnd, &pt);
-        ZoomImage(GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? 1.1f : 0.9f, pt);
+        ZoomImage(wheelDelta > 0 ? 1.1f : 0.9f, pt);
         break;
     }
     case WM_LBUTTONDBLCLK:
+        if (g_ctx.isGalleryMode) break;
         FitImageToWindow();
         break;
     case WM_RBUTTONUP: {
+        if (g_ctx.isGalleryMode) { ExitGalleryMode(); break; }
         if (g_ctx.isCropMode || g_ctx.isSelectingCropRect || g_ctx.isCropPending || g_ctx.isSelectingOcrRect) {
             bool wasCropActive = g_ctx.isCropActive;
             g_ctx.isCropMode = false;
@@ -551,6 +585,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         break;
     case WM_LBUTTONDOWN: {
         POINT pt = { LOWORD(lParam), HIWORD(lParam) };
+        if (g_ctx.isGalleryMode) { GalleryOnClick(pt); break; }
         if (g_ctx.isEyedropperActive) {
             HandleEyedropperClick();
             g_ctx.isEyedropperActive = false;
@@ -719,13 +754,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             }
         }
         if (wParam != SIZE_MINIMIZED) {
-            if (!g_ctx.isLoading) {
+            if (!g_ctx.isLoading && !g_ctx.isGalleryMode) {
                 FitImageToWindow();
-                InvalidateRect(hWnd, nullptr, FALSE);
             }
+            InvalidateRect(hWnd, nullptr, FALSE);
         }
         break;
     case WM_DESTROY:
+        CleanupGalleryThread();
         KillTimer(g_ctx.hWnd, ANIMATION_TIMER_ID);
         KillTimer(g_ctx.hWnd, AUTO_REFRESH_TIMER_ID);
         if (g_ctx.hPropsWnd) {
