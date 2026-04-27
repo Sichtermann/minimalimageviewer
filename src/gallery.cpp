@@ -287,7 +287,7 @@ void GalleryOnScroll(int delta) {
     int cols      = CalcCols(static_cast<float>(cr.right - cr.left));
     int n         = static_cast<int>(g_ctx.imageFiles.size());
     int totalRows = (n + cols - 1) / cols;
-    int maxScroll = std::max(0, static_cast<int>(totalRows * CELL_H) - (cr.bottom - cr.top));
+    int maxScroll = std::max(0, static_cast<int>(totalRows * CELL_H) - static_cast<int>(cr.bottom - cr.top));
 
     // 3 rows per notch
     g_ctx.galleryScrollOffset -= (delta / WHEEL_DELTA) * static_cast<int>(CELL_H) * 3;
