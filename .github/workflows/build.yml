@@ -1,0 +1,29 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Release x64
+        working-directory: src
+        run: msbuild MinimalImageViewer.vcxproj /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /m
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: MinimalImageViewer
+          path: src/x64/Release/MinimalImageViewer.exe
+          if-no-files-found: error
